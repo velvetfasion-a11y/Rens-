@@ -1,0 +1,14 @@
+.secrets/
+secrets.env
+.env
+.env.*
+!.env.example
+.tools/
+node_modules/
+dist/
+.output/
+.nitro/
+.vite/
+*.log
+.DS_Store
+.neon

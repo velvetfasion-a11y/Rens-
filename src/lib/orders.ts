@@ -1,0 +1,240 @@
+import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { JOURNAL, shippingCost, shippingDays, type ShipRegion } from "@/data/journal";
+import { stripeClient } from "@/lib/stripe.server";
+
+const SHOP = "hello@rense.se";
+
+const countries: Record<Exclude<ShipRegion, "">, string> = {
+  sweden: "Sweden",
+  europe: "Europe",
+  world: "Outside Europe",
+};
+
+export const methods = {
+  apple: "Apple Pay",
+  card: "Mastercard",
+  paypal: "PayPal",
+  klarna: "Klarna",
+} as const;
+
+export type OrderInput = {
+  name: string;
+  email: string;
+  address: string;
+  postal: string;
+  city: string;
+  country: Exclude<ShipRegion, "">;
+  qty: number;
+  method: keyof typeof methods;
+};
+
+function clean(value: string, max: number) {
+  return value.trim().slice(0, max);
+}
+
+export function readOrder(input: unknown): OrderInput {
+  if (!input || typeof input !== "object") throw new Error("Enter the delivery details.");
+  const raw = input as Record<string, unknown>;
+  const name = clean(String(raw.name ?? ""), 200);
+  const email = clean(String(raw.email ?? ""), 200);
+  const address = clean(String(raw.address ?? ""), 300);
+  const postal = clean(String(raw.postal ?? ""), 20);
+  const city = clean(String(raw.city ?? ""), 120);
+  const country = raw.country;
+  const method = raw.method;
+  const qty = Number(raw.qty);
+  if (!name || !address || !postal || !city) throw new Error("Enter the name and the address for delivery.");
+  if (!email.includes("@") || !email.includes(".")) throw new Error("Enter an email address.");
+  if (country !== "sweden" && country !== "europe" && country !== "world") {
+    throw new Error("Choose a country.");
+  }
+  if (method !== "apple" && method !== "card" && method !== "paypal" && method !== "klarna") {
+    throw new Error("Choose a way to pay.");
+  }
+  if (!Number.isInteger(qty) || qty < 1 || qty > 20) throw new Error("Choose a quantity.");
+  return { name, email, address, postal, city, country, qty, method };
+}
+
+function orderText(order: OrderInput, goods: number, delivery: number) {
+  const place = countries[order.country];
+  const days = shippingDays(order.country);
+  return [
+    "New order for the Guided Healing Journal.",
+    "",
+    `Name: ${order.name}`,
+    `Email: ${order.email}`,
+    `Address: ${order.address}`,
+    `Postcode: ${order.postal}`,
+    `City: ${order.city}`,
+    `Country: ${place}`,
+    "",
+    `Quantity: ${order.qty}`,
+    `Journal: ${goods} kr`,
+    `Delivery: ${delivery === 0 ? "Free" : `${delivery} kr`}`,
+    `Total: ${goods + delivery} kr`,
+    `Payment: ${methods[order.method]}`,
+    days ? `Delivery time: ${days}` : "Delivery time: to be confirmed",
+    "",
+    "Send the journal to the address above.",
+  ].join("\n");
+}
+
+function receiptText(order: OrderInput, goods: number, delivery: number) {
+  const place = countries[order.country];
+  const days = shippingDays(order.country);
+  return [
+    "Thank you. This is your receipt from Rensé Advisory.",
+    "",
+    "Guided Healing Journal",
+    `Quantity: ${order.qty}`,
+    `Journal: ${goods} kr`,
+    `Delivery: ${delivery === 0 ? "Free" : `${delivery} kr`}`,
+    `Total: ${goods + delivery} kr`,
+    `Payment: ${methods[order.method]}`,
+    days ? `Delivery time: ${days}` : "",
+    "",
+    "Sent to:",
+    order.name,
+    order.address,
+    `${order.postal} ${order.city}`,
+    place,
+    "",
+    "Rensé Advisory",
+    "Brommavägen 7, Kramfors, Sweden",
+    SHOP,
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
+function requestOrigin() {
+  const request = getRequest();
+  if (!request) throw new Error("The checkout could not be started. Try again.");
+  return new URL(request.url).origin;
+}
+
+export const createStripeCheckout = createServerFn({ method: "POST" })
+  .inputValidator(readOrder)
+  .handler(async ({ data: order }) => {
+    const stripe = stripeClient();
+    const origin = requestOrigin();
+    const goods = JOURNAL.price * order.qty;
+    const delivery = shippingCost(order.qty, order.country) ?? 0;
+    const lineItems: { price_data: { currency: string; product_data: { name: string }; unit_amount: number }; quantity: number }[] = [
+      {
+        price_data: {
+          currency: "sek",
+          product_data: { name: JOURNAL.name },
+          unit_amount: JOURNAL.price * 100,
+        },
+        quantity: order.qty,
+      },
+    ];
+    if (delivery > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "sek",
+          product_data: { name: "Delivery" },
+          unit_amount: delivery * 100,
+        },
+        quantity: 1,
+      });
+    }
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      currency: "sek",
+      customer_email: order.email,
+      line_items: lineItems,
+      success_url: `${origin}/order/complete?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/`,
+      metadata: {
+        name: order.name,
+        email: order.email,
+        address: order.address,
+        postcode: order.postal,
+        city: order.city,
+        country: order.country,
+        quantity: String(order.qty),
+        method: order.method,
+      },
+    });
+    if (!session.url) throw new Error("The checkout could not be started. Try again.");
+    return { url: session.url };
+  });
+
+export type FulfillResult =
+  | { status: "missing" }
+  | { status: "unpaid" }
+  | { status: "paid"; email: string }
+  | { status: "already"; email: string };
+
+export const fulfillCheckoutSession = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    if (!input || typeof input !== "object") throw new Error("Missing checkout session.");
+    const sessionId = String((input as { sessionId?: string }).sessionId ?? "").trim();
+    if (!sessionId) throw new Error("Missing checkout session.");
+    return { sessionId };
+  })
+  .handler(async ({ data: { sessionId } }): Promise<FulfillResult> => {
+    const stripe = stripeClient();
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status !== "paid") {
+      return { status: "unpaid" };
+    }
+    const meta = session.metadata ?? {};
+    const order = readOrder({
+      name: meta.name,
+      email: meta.email,
+      address: meta.address,
+      postal: meta.postcode,
+      city: meta.city,
+      country: meta.country,
+      qty: meta.quantity,
+      method: meta.method,
+    });
+    const goods = JOURNAL.price * order.qty;
+    const delivery = shippingCost(order.qty, order.country) ?? 0;
+    const total = goods + delivery;
+    const place = countries[order.country];
+    const days = shippingDays(order.country);
+
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    const inserted = await sql<{ id: string }>`
+      insert into orders (
+        id, customer_name, customer_email, address, postal, city, country,
+        qty, method, goods_kr, delivery_kr, total_kr
+      ) values (
+        ${session.id}, ${order.name}, ${order.email}, ${order.address}, ${order.postal},
+        ${order.city}, ${place}, ${order.qty}, ${order.method}, ${goods}, ${delivery}, ${total}
+      )
+      on conflict (id) do nothing
+      returning id
+    `;
+    if (inserted.length === 0) {
+      return { status: "already", email: order.email };
+    }
+
+    const shopText = orderText(order, goods, delivery);
+    const receipt = receiptText(order, goods, delivery);
+    const { sendOrderMail } = await import("@/lib/mail.server");
+    await sendOrderMail({
+      customerEmail: order.email,
+      customerName: order.name,
+      address: order.address,
+      postal: order.postal,
+      city: order.city,
+      country: place,
+      qty: order.qty,
+      goods,
+      delivery,
+      total,
+      method: methods[order.method],
+      days,
+      receipt,
+      shopText,
+    });
+
+    return { status: "paid", email: order.email };
+  });
