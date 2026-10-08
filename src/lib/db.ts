@@ -3,20 +3,28 @@ import { pendingMigrations } from "../../scripts/migration-plan.mjs";
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
 
-// An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
-// "unset" — otherwise production would silently run on the PGLite fallback.
-const rawDatabaseUrl =
-  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+/** Read at call time so deploy env vars are visible in serverless (not build-time). */
+function getDatabaseUrl(): string | undefined {
+  const raw =
+    typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
+  const trimmed = raw?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+/** PGLite needs WASM + data files; it cannot run on Vercel/Lambda. */
+function pgliteAllowed(): boolean {
+  if (getDatabaseUrl()) return false;
+  if (process.env.VERCEL) return false;
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) return false;
+  return true;
+}
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
- * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
- * the app has a working database even with nothing configured — the live preview
- * included. Swap in Neon later by just setting `DATABASE_URL`; no code changes.
+ * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) for
+ * local dev only. On Vercel, always use Neon — set `DATABASE_URL` in project env.
  */
-export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
+export const dbSource: DbSource = pgliteAllowed() ? "pglite" : "neon";
 
 /**
  * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the
@@ -87,13 +95,19 @@ function toSql(run: Run): Sql {
 
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
+    const connectionString = getDatabaseUrl();
+    if (!connectionString) {
+      throw new Error(
+        "DATABASE_URL is not set on the server. Add your Neon connection string in Vercel → Settings → Environment Variables.",
+      );
+    }
     // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
     // pooled endpoint. One pool per process; warm serverless instances reuse it.
     const { Pool, types } = await import("pg");
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = new Pool({ connectionString });
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
