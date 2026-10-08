@@ -296,7 +296,9 @@ export const fulfillCheckoutSession = createServerFn({ method: "POST" })
         mailMessage = fulfillErrorMessage(mailErr);
       }
 
-      await storeOrder(session.id, order, goods, delivery, total, place);
+      if (!mailMessage) {
+        await storeOrder(session.id, order, goods, delivery, total, place);
+      }
 
       return mailMessage
         ? { status: "paid", email: order.email, message: mailMessage }
