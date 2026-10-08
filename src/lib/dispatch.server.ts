@@ -1,6 +1,4 @@
 import { timingSafeEqual } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { shippingDays, type ShipRegion } from "@/data/journal";
 
 const places: Record<string, string> = {
@@ -20,16 +18,7 @@ export type DispatchOrder = {
 };
 
 function dispatchKey() {
-  const fromEnv = process.env.DISPATCH_KEY?.trim();
-  if (fromEnv) return fromEnv;
-  try {
-    const parsed = JSON.parse(readFileSync(join(process.cwd(), ".secrets", "dispatch.json"), "utf8")) as {
-      key?: string;
-    };
-    return parsed.key ?? "";
-  } catch {
-    return "";
-  }
+  return process.env.DISPATCH_KEY?.trim() ?? "";
 }
 
 export function assertDispatchKey(key: string) {

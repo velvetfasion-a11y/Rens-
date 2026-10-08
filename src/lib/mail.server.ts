@@ -1,30 +1,15 @@
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createTransport } from "nodemailer";
 
 const FROM = "RENSÉ <hello@rense.se>";
 const SHOP = "hello@rense.se";
 
-type MailCreds = { host?: string; user?: string; pass?: string };
-
 function creds(): { host: string; user: string; pass: string } {
-  const fromEnv = process.env.ZOHO_APP_PASSWORD?.trim();
-  if (fromEnv) {
-    return {
-      host: process.env.ZOHO_SMTP_HOST?.trim() || "smtp.zoho.eu",
-      user: process.env.ZOHO_SMTP_USER?.trim() || SHOP,
-      pass: fromEnv,
-    };
-  }
-  const parsed = JSON.parse(
-    readFileSync(join(process.cwd(), ".secrets", "zoho-mail.json"), "utf8"),
-  ) as MailCreds;
-  if (!parsed.pass || !parsed.user) throw new Error("The receipt could not be sent. Try again.");
-  return {
-    host: parsed.host?.trim() || "smtp.zoho.eu",
-    user: parsed.user.trim(),
-    pass: parsed.pass,
-  };
+  const pass = process.env.ZOHO_APP_PASSWORD?.trim();
+  const user = process.env.ZOHO_SMTP_USER?.trim() || SHOP;
+  const host = process.env.ZOHO_SMTP_HOST?.trim() || "smtp.zoho.eu";
+  if (!pass) throw new Error("ZOHO_APP_PASSWORD is not set on the server.");
+  return { host, user, pass };
 }
 
 export async function sendOrderMail(input: {

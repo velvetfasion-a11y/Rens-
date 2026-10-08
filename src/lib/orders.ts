@@ -166,24 +166,62 @@ export const createStripeCheckout = createServerFn({ method: "POST" })
 export type FulfillResult =
   | { status: "missing" }
   | { status: "unpaid" }
-  | { status: "paid"; email: string }
+  | { status: "failed"; message: string }
+  | { status: "paid"; email: string; message?: string }
   | { status: "already"; email: string };
 
-export const fulfillCheckoutSession = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => {
-    if (!input || typeof input !== "object") throw new Error("Missing checkout session.");
-    const sessionId = String((input as { sessionId?: string }).sessionId ?? "").trim();
-    if (!sessionId) throw new Error("Missing checkout session.");
-    return { sessionId };
-  })
-  .handler(async ({ data: { sessionId } }): Promise<FulfillResult> => {
-    const stripe = stripeClient();
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== "paid") {
-      return { status: "unpaid" };
-    }
-    const meta = session.metadata ?? {};
-    const order = readOrder({
+function fulfillErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message.trim()) return err.message.trim();
+  return "The order could not be confirmed on the server.";
+}
+
+function databaseConfigured() {
+  return Boolean(process.env.DATABASE_URL?.trim());
+}
+
+async function orderAlreadyStored(sessionId: string): Promise<boolean> {
+  if (!databaseConfigured()) return false;
+  try {
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    const rows = await sql<{ id: string }>`select id from orders where id = ${sessionId} limit 1`;
+    return rows.length > 0;
+  } catch (err) {
+    console.error("[fulfillCheckoutSession] order lookup failed", err);
+    return false;
+  }
+}
+
+async function storeOrder(
+  sessionId: string,
+  order: OrderInput,
+  goods: number,
+  delivery: number,
+  total: number,
+  place: string,
+) {
+  if (!databaseConfigured()) return;
+  try {
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    await sql`
+      insert into orders (
+        id, customer_name, customer_email, address, postal, city, country,
+        qty, method, goods_kr, delivery_kr, total_kr
+      ) values (
+        ${sessionId}, ${order.name}, ${order.email}, ${order.address}, ${order.postal},
+        ${order.city}, ${place}, ${order.qty}, ${order.method}, ${goods}, ${delivery}, ${total}
+      )
+      on conflict (id) do nothing
+    `;
+  } catch (err) {
+    console.error("[fulfillCheckoutSession] order save failed", err);
+  }
+}
+
+function readOrderFromSessionMeta(meta: Record<string, string | undefined>): OrderInput | { error: string } {
+  try {
+    return readOrder({
       name: meta.name,
       email: meta.email,
       address: meta.address,
@@ -193,48 +231,78 @@ export const fulfillCheckoutSession = createServerFn({ method: "POST" })
       qty: meta.quantity,
       method: meta.method,
     });
-    const goods = JOURNAL.price * order.qty;
-    const delivery = shippingCost(order.qty, order.country) ?? 0;
-    const total = goods + delivery;
-    const place = countries[order.country];
-    const days = shippingDays(order.country);
+  } catch (err) {
+    return { error: fulfillErrorMessage(err) };
+  }
+}
 
-    const { getSql } = await import("@/lib/db");
-    const sql = await getSql();
-    const inserted = await sql<{ id: string }>`
-      insert into orders (
-        id, customer_name, customer_email, address, postal, city, country,
-        qty, method, goods_kr, delivery_kr, total_kr
-      ) values (
-        ${session.id}, ${order.name}, ${order.email}, ${order.address}, ${order.postal},
-        ${order.city}, ${place}, ${order.qty}, ${order.method}, ${goods}, ${delivery}, ${total}
-      )
-      on conflict (id) do nothing
-      returning id
-    `;
-    if (inserted.length === 0) {
-      return { status: "already", email: order.email };
+export const fulfillCheckoutSession = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const sessionId =
+      input && typeof input === "object"
+        ? String((input as { sessionId?: string }).sessionId ?? "").trim()
+        : "";
+    return { sessionId };
+  })
+  .handler(async ({ data: { sessionId } }): Promise<FulfillResult> => {
+    if (!sessionId) {
+      return { status: "failed", message: "Missing checkout session id." };
     }
+    try {
+      const stripe = stripeClient();
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status !== "paid") {
+        return { status: "unpaid" };
+      }
 
-    const shopText = orderText(order, goods, delivery);
-    const receipt = receiptText(order, goods, delivery);
-    const { sendOrderMail } = await import("@/lib/mail.server");
-    await sendOrderMail({
-      customerEmail: order.email,
-      customerName: order.name,
-      address: order.address,
-      postal: order.postal,
-      city: order.city,
-      country: place,
-      qty: order.qty,
-      goods,
-      delivery,
-      total,
-      method: methods[order.method],
-      days,
-      receipt,
-      shopText,
-    });
+      const parsed = readOrderFromSessionMeta(session.metadata ?? {});
+      if ("error" in parsed) {
+        return { status: "failed", message: parsed.error };
+      }
+      const order = parsed;
+      const goods = JOURNAL.price * order.qty;
+      const delivery = shippingCost(order.qty, order.country) ?? 0;
+      const total = goods + delivery;
+      const place = countries[order.country];
+      const days = shippingDays(order.country);
 
-    return { status: "paid", email: order.email };
+      if (await orderAlreadyStored(session.id)) {
+        return { status: "already", email: order.email };
+      }
+
+      const shopText = orderText(order, goods, delivery);
+      const receipt = receiptText(order, goods, delivery);
+      let mailMessage: string | undefined;
+      try {
+        const { sendOrderMail } = await import("@/lib/mail.server");
+        await sendOrderMail({
+          customerEmail: order.email,
+          customerName: order.name,
+          address: order.address,
+          postal: order.postal,
+          city: order.city,
+          country: place,
+          qty: order.qty,
+          goods,
+          delivery,
+          total,
+          method: methods[order.method],
+          days,
+          receipt,
+          shopText,
+        });
+      } catch (mailErr) {
+        console.error("[fulfillCheckoutSession] receipt email failed", mailErr);
+        mailMessage = fulfillErrorMessage(mailErr);
+      }
+
+      await storeOrder(session.id, order, goods, delivery, total, place);
+
+      return mailMessage
+        ? { status: "paid", email: order.email, message: mailMessage }
+        : { status: "paid", email: order.email };
+    } catch (err) {
+      console.error("[fulfillCheckoutSession]", err);
+      return { status: "failed", message: fulfillErrorMessage(err) };
+    }
   });

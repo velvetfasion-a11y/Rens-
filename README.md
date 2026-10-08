@@ -8,13 +8,12 @@ Guided Healing Journal — TanStack Start + Vite storefront.
 npm install
 ```
 
-Add local credentials under `.secrets/` (gitignored):
+Copy `secrets.env.example` to `secrets.env` (gitignored) for local dev, or set these on Vercel:
 
-- `.secrets/zoho-mail.json` — `host`, `user`, `pass`
-- `.secrets/dispatch.json` — `key` (password for `/dispatch`)
-- `.secrets/stripe.json` — `secretKey` (or `STRIPE_SECRET_KEY` in `secrets.env`) for Stripe Checkout
-
-Optional: `secrets.env` for extra server environment variables (also gitignored).
+- `STRIPE_SECRET_KEY`
+- `ZOHO_APP_PASSWORD`, `ZOHO_SMTP_USER`, `ZOHO_SMTP_HOST`
+- `DATABASE_URL` (Neon — order storage)
+- `DISPATCH_KEY` (`/dispatch` password)
 
 ## Develop
 
