@@ -1,5 +1,26 @@
+import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createTransport } from "nodemailer";
+
+const JOURNAL_COVER_FILE = "journal-cover-clear.jpg";
+
+/** Local `public/` in dev; on Vercel static files are on the CDN, not in `/var/task`. */
+async function journalCoverAttachment() {
+  const filename = JOURNAL_COVER_FILE;
+  const local = join(process.cwd(), "public", "images", filename);
+  try {
+    await access(local);
+    const content = await readFile(local);
+    return { filename, content, cid: "journal" as const };
+  } catch {
+    const base = (process.env.SITE_URL?.trim() || "https://www.rense.se").replace(/\/$/, "");
+    const res = await fetch(`${base}/images/${filename}`);
+    if (!res.ok) {
+      throw new Error(`Could not load the journal image for email (${res.status}).`);
+    }
+    return { filename, content: Buffer.from(await res.arrayBuffer()), cid: "journal" as const };
+  }
+}
 
 const FROM = "RENSÉ <hello@rense.se>";
 const SHOP = "hello@rense.se";
@@ -35,11 +56,7 @@ export async function sendOrderMail(input: {
     secure: true,
     auth: { user, pass },
   });
-  const journal = {
-    filename: "journal-cover-clear.jpg",
-    path: join(process.cwd(), "public", "images", "journal-cover-clear.jpg"),
-    cid: "journal",
-  };
+  const journal = await journalCoverAttachment();
   await transport.sendMail({
     from: FROM,
     to: input.customerEmail,
@@ -371,6 +388,7 @@ export async function sendOnTheWay(input: {
     "",
     "Should you require anything further, please write to hello@rense.se.",
   ].join("\n");
+  const journal = await journalCoverAttachment();
   await transport.sendMail({
     from: FROM,
     to: input.customerEmail,
@@ -378,12 +396,6 @@ export async function sendOnTheWay(input: {
     subject: "Your RENSÉ order has been shipped",
     text,
     html: onTheWayHtml(input),
-    attachments: [
-      {
-        filename: "journal-cover-clear.jpg",
-        path: join(process.cwd(), "public", "images", "journal-cover-clear.jpg"),
-        cid: "journal",
-      },
-    ],
+    attachments: [journal],
   });
 }
