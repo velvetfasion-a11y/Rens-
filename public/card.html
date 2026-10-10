@@ -6,7 +6,8 @@
 <meta name="theme-color" content="#120d0b">
 <title>RENSÉ Business Card</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap">
 <style>
 /* Layout: one candlelit stage, a gilt-edged card floating in the centre, contact line beneath. */
 :root {
@@ -23,6 +24,9 @@
   --display: 'Cormorant Garamond', 'Cormorant', Georgia, 'Times New Roman', serif;
   --body: 'Jost', 'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif;
   --cw: min(86vw, 540px);
+  --ivory: #f4efe6;
+  --font-site: "Bodoni Moda", Didot, "Times New Roman", serif;
+  --tracking-word: 0.18em;
   color-scheme: dark;
 }
 html, body { height: 100%; }
@@ -138,19 +142,25 @@ button {
 button:hover { background: rgba(201,163,91,.12); }
 button:focus-visible { outline: 2px solid var(--gilt); outline-offset: 3px; }
 .status { min-height: 18px; margin: 0; font-size: 13px; color: var(--gilt-soft); text-align: center; }
-.site-home {
-  position: fixed; top: 20px; left: 24px; z-index: 20;
-  font-size: 14px; color: var(--paper); font-family: var(--body);
-  text-decoration: underline; text-underline-offset: 4px;
+.site-header {
+  position: fixed; inset: 0 0 auto 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; box-sizing: border-box; background: transparent;
 }
-.site-home:hover { color: var(--gilt-soft); }
+.site-home {
+  font-family: var(--font-site); font-size: 18px; font-weight: 400;
+  letter-spacing: var(--tracking-word); color: var(--ivory);
+  text-decoration: none;
+}
 .site-home:focus-visible { outline: 1px solid var(--gilt); outline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
 </style>
 <style>body{margin:0}</style>
 </head>
 <body>
-<a class="site-home" href="/">RENSÉ</a>
+<header class="site-header">
+  <a class="site-home" href="/">RENSÉ</a>
+</header>
 
 <main class="stage">
   <p class="eyebrow">Rensé · A private transformation</p>
