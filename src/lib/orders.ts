@@ -80,21 +80,17 @@ function orderText(order: OrderInput, goods: number, delivery: number) {
   ].join("\n");
 }
 
-function receiptText(order: OrderInput, goods: number, delivery: number) {
+function receiptText(order: OrderInput, _goods: number, _delivery: number) {
   const place = countries[order.country];
   const days = shippingDays(order.country);
   return [
-    "Thank you. This is your receipt from Rensé Advisory.",
+    "Thank you. Your order is confirmed.",
     "",
-    "Guided Healing Journal",
+    "The Guided Healing Journal is being prepared and will leave for you shortly.",
     `Quantity: ${order.qty}`,
-    `Journal: ${goods} kr`,
-    `Delivery: ${delivery === 0 ? "Free" : `${delivery} kr`}`,
-    `Total: ${goods + delivery} kr`,
-    `Payment: ${methods[order.method]}`,
-    days ? `Delivery time: ${days}` : "",
+    days ? `Arrives in: ${days}` : "",
     "",
-    "Sent to:",
+    "Delivering to:",
     order.name,
     order.address,
     `${order.postal} ${order.city}`,
