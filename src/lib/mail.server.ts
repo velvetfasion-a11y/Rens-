@@ -61,7 +61,7 @@ export async function sendOrderMail(input: {
     from: FROM,
     to: input.customerEmail,
     replyTo: SHOP,
-    subject: "Your RENSÉ order",
+    subject: "Your order is confirmed",
     text: input.receipt,
     html: orderHtml(input),
     attachments: [journal],
@@ -189,11 +189,9 @@ export function orderHtml(input: {
   const address = escapeHtml(input.address);
   const place = escapeHtml(`${input.postal} ${input.city}`.trim());
   const country = escapeHtml(input.country);
-  const method = escapeHtml(input.method);
   const sans = "Helvetica,Arial,sans-serif";
   const mark = "Didot,'Bodoni MT',Palatino,'Times New Roman',serif";
-  const delivery = input.delivery === 0 ? "Complimentary" : `${input.delivery} kr`;
-  const when = input.days ? escapeHtml(input.days) : "";
+  const when = input.days ? escapeHtml(input.days) : "We will confirm the delivery time by email";
   return `<!doctype html>
 <html>
 <body style="margin:0;padding:0;background:#ffffff;">
@@ -202,58 +200,53 @@ export function orderHtml(input: {
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;">
           <tr>
-            <td align="center" style="padding:48px 32px 36px;">
-              <p style="margin:0;font-family:${mark};font-size:14px;letter-spacing:0.46em;color:#000000;">RENSÉ</p>
+            <td align="center" style="padding:56px 32px 8px;">
+              <p style="margin:0;font-family:${mark};font-size:15px;letter-spacing:0.5em;color:#111111;">RENSÉ</p>
             </td>
           </tr>
           <tr>
-            <td style="padding:0 40px;font-family:${sans};font-size:14px;line-height:22px;color:#000000;">
-              <p style="margin:0 0 16px;">Dear ${first},</p>
-              <p style="margin:0;">We are pleased to confirm your order.</p>
+            <td align="center" style="padding:28px 40px 0;font-family:${mark};font-size:32px;line-height:38px;color:#111111;">
+              Thank you, ${first}.
             </td>
           </tr>
           <tr>
-            <td style="padding:28px 40px 0;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e6e6e6;border-bottom:1px solid #e6e6e6;">
-                <tr>
-                  <td width="88" valign="middle" style="padding:18px 16px 18px 0;">
-                    <img src="cid:journal" width="72" alt="" style="display:block;width:72px;height:auto;border:0;" />
-                  </td>
-                  <td valign="middle" style="padding:18px 0;font-family:${sans};font-size:14px;line-height:20px;color:#000000;">
-                    Guided Healing Journal<br />Quantity ${input.qty}
-                  </td>
-                  <td valign="middle" align="right" style="padding:18px 0;font-family:${sans};font-size:14px;color:#000000;">${input.goods} kr</td>
-                </tr>
-              </table>
+            <td align="center" style="padding:16px 48px 0;font-family:${sans};font-size:15px;line-height:24px;color:#222222;">
+              Your order is confirmed. The Guided Healing Journal is being prepared and will leave for you shortly.
             </td>
           </tr>
           <tr>
-            <td style="padding:22px 40px 0;font-family:${sans};font-size:14px;line-height:22px;color:#000000;">
-              <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.16em;">DELIVERY</p>
-              <p style="margin:0;">${delivery}${when ? `<br />${when}` : ""}</p>
+            <td align="center" style="padding:36px 40px 0;">
+              <img src="cid:journal" width="220" alt="Guided Healing Journal" style="display:block;width:220px;height:auto;border:0;" />
             </td>
           </tr>
           <tr>
-            <td style="padding:22px 40px 0;font-family:${sans};font-size:14px;line-height:22px;color:#000000;">
-              <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.16em;">TOTAL</p>
-              <p style="margin:0;">${input.total} kr</p>
+            <td align="center" style="padding:18px 40px 0;font-family:${sans};font-size:14px;line-height:22px;color:#111111;">
+              Guided Healing Journal<br />Quantity ${input.qty}
             </td>
           </tr>
           <tr>
-            <td style="padding:22px 40px 0;font-family:${sans};font-size:14px;line-height:22px;color:#000000;">
-              <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.16em;">PAYMENT</p>
-              <p style="margin:0;">${method}</p>
+            <td align="center" style="padding:36px 40px 0;font-family:${sans};font-size:12px;letter-spacing:0.18em;color:#111111;">
+              DELIVERING TO
             </td>
           </tr>
           <tr>
-            <td style="padding:22px 40px 0;font-family:${sans};font-size:14px;line-height:22px;color:#000000;">
-              <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.16em;">SHIPPING ADDRESS</p>
-              <p style="margin:0;">${name}<br />${address}<br />${place}<br />${country}</p>
+            <td align="center" style="padding:10px 40px 0;font-family:${sans};font-size:15px;line-height:24px;color:#111111;">
+              ${name}<br />${address}<br />${place}<br />${country}
             </td>
           </tr>
           <tr>
-            <td style="padding:28px 40px 56px;font-family:${sans};font-size:14px;line-height:22px;color:#000000;">
-              <p style="margin:0;">Should you require anything further, please write to hello@rense.se.</p>
+            <td align="center" style="padding:28px 40px 0;font-family:${sans};font-size:12px;letter-spacing:0.18em;color:#111111;">
+              ARRIVES IN
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:10px 40px 0;font-family:${sans};font-size:15px;line-height:24px;color:#111111;">
+              ${when}
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:36px 48px 64px;font-family:${sans};font-size:14px;line-height:22px;color:#444444;">
+              A note will follow when it is on its way.<br />hello@rense.se
             </td>
           </tr>
         </table>
