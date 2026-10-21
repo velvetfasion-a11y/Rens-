@@ -1,10 +1,7 @@
 import { useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Header } from "@/components/header";
-import { Hero } from "@/components/hero";
-import { Product } from "@/components/product";
-import { SiteFooter } from "@/components/site-footer";
 import { BagDialog } from "@/components/bag-dialog";
+import { HomePage } from "@/components/home-page";
 import { PayDialog } from "@/components/pay-dialog";
 import { readAtelier, useAtelier } from "@/lib/atelier";
 
@@ -21,12 +18,7 @@ function Home() {
 
   return (
     <>
-      <Header />
-      <main>
-        <Hero />
-        <Product />
-      </main>
-      <SiteFooter />
+      <HomePage />
       <BagDialog />
       <PayDialog />
     </>
