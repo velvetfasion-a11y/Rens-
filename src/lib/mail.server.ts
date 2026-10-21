@@ -2,7 +2,7 @@ import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createTransport } from "nodemailer";
 
-const JOURNAL_COVER_FILE = "journal-cover-clear.jpg";
+const JOURNAL_COVER_FILE = "journal-real.jpg";
 
 /** Local `public/` in dev; on Vercel static files are on the CDN, not in `/var/task`. */
 async function journalCoverAttachment() {

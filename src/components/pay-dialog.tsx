@@ -112,12 +112,12 @@ export function PayDialog() {
   return (
     <Dialog.Root open={open} onOpenChange={close}>
       <Dialog.Portal>
-        <Dialog.Overlay className="veil fixed inset-0 z-50 bg-ink/70" />
-        <Dialog.Content className="pay-sheet bag fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col outline-none">
-          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
-            <Dialog.Title className="text-lg font-semibold text-neutral-900">Payment</Dialog.Title>
+        <Dialog.Overlay className="veil fixed inset-0 z-50 bg-black/65" />
+        <Dialog.Content className="pay-sheet bag fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-ink/15 bg-white outline-none">
+          <div className="flex items-center justify-between border-b border-ink/15 px-6 py-5">
+            <Dialog.Title className="font-display text-3xl text-ink">Payment</Dialog.Title>
             <Dialog.Close
-              className="press grid size-10 place-items-center text-neutral-900"
+              className="press grid size-11 place-items-center text-ink"
               aria-label="Close payment"
             >
               <X className="size-5" strokeWidth={1.5} />
@@ -127,14 +127,21 @@ export function PayDialog() {
             Pay for the Guided Healing Journal with Stripe Checkout. Card details are entered on Stripe, not on this site.
           </Dialog.Description>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-            <div className="flex items-center gap-3 border-b border-neutral-200 pb-4">
-              <img src="/images/journal-cover-clear.jpg" alt="" className="h-14 w-10 object-cover" />
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex gap-4 border-b border-ink/15 pb-5">
+              <img
+                src="/images/journal-real.jpg"
+                alt=""
+                width={842}
+                height={1289}
+                className="h-28 w-20 shrink-0 object-cover object-center"
+              />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-neutral-900">{JOURNAL.name}</p>
-                <p className="mt-0.5 text-sm text-neutral-500 tabular-nums">Qty {qty}</p>
+                <p className="font-display text-xl text-ink">{JOURNAL.name}</p>
+                <p className="mt-1 text-sm text-mute italic">A private transformation</p>
+                <p className="mt-2 text-sm text-ink tabular-nums">Qty {qty}</p>
               </div>
-              <p className="text-sm font-medium text-neutral-900 tabular-nums">{formatPrice(goods)}</p>
+              <p className="shrink-0 font-display text-xl text-ink tabular-nums">{formatPrice(goods)}</p>
             </div>
 
             <p className="mt-5 text-sm font-medium text-neutral-900">Preferred payment</p>
@@ -201,7 +208,7 @@ export function PayDialog() {
             {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
           </div>
 
-          <div className="border-t border-neutral-200 px-5 py-4">
+          <div className="border-t border-ink/15 px-6 py-4">
             <label className="mb-4 flex items-start gap-3 text-sm text-neutral-800">
               <input
                 type="checkbox"
@@ -225,7 +232,7 @@ export function PayDialog() {
               type="button"
               onClick={pay}
               disabled={sending}
-              className="press flex h-12 w-full items-center justify-center rounded-md bg-neutral-950 text-sm font-medium text-white disabled:opacity-50"
+              className="press flex h-12 w-full items-center justify-center rounded-full border border-gold text-xs tracking-label text-ink uppercase disabled:opacity-50"
             >
               {sending ? "Opening checkout…" : `Continue to checkout · ${formatPrice(addressReady ? due : goods)}`}
             </button>
