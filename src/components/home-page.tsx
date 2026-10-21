@@ -1,9 +1,14 @@
 import { ChevronLeft, ChevronRight, Star, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { REVIEWS } from "@/data/reviews";
 import { JOURNAL } from "@/data/journal";
 import { useAtelier } from "@/lib/atelier";
 import { SaveButton, SiteChrome } from "@/components/site-chrome";
+import {
+  SUBSCRIBE_SECTION_ID,
+  ZOHO_CIRCLE_OPTIN_ACTION,
+  ZOHO_CIRCLE_OPTIN_HIDDEN,
+} from "@/lib/subscribe";
 
 const INSIDE = [
   ["Welcome", "page"],
@@ -129,17 +134,19 @@ export function HomePage() {
           </button>
 
           <section id="about" className="relative overflow-hidden bg-white px-6 pt-16 pb-12 text-center sm:pt-20 lg:pt-24 lg:pb-16">
-            <p
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-10 select-none text-center font-display text-[18vw] leading-none tracking-[0.08em] text-ink/[0.045] sm:top-8 sm:text-[14vw] lg:text-[11rem]"
-            >
-              RENSÉ
-            </p>
-            <p className="relative flex items-center justify-center gap-4 text-[11px] tracking-[0.42em] text-gold uppercase">
-              <span className="h-px w-8 bg-gold sm:w-12" />
-              About us
-              <span className="h-px w-8 bg-gold sm:w-12" />
-            </p>
+            <div className="relative mx-auto flex min-h-[3.25rem] items-center justify-center sm:min-h-[3.75rem] lg:min-h-[4.5rem]">
+              <p
+                aria-hidden="true"
+                className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 select-none font-display text-[18vw] leading-none tracking-[0.04em] text-ink/[0.045] sm:text-[14vw] lg:text-[11rem]"
+              >
+                RENSÉ
+              </p>
+              <p className="relative z-10 flex items-center justify-center gap-4 text-[11px] tracking-[0.42em] text-gold uppercase">
+                <span className="h-px w-8 bg-gold sm:w-12" />
+                About us
+                <span className="h-px w-8 bg-gold sm:w-12" />
+              </p>
+            </div>
             <h2 className="relative mx-auto mt-6 text-ink lg:mt-8">
               <span className="block text-[clamp(1.85rem,7.6vw,4.5rem)] leading-[1.08] whitespace-nowrap">
                 At RENSÉ, we believe
@@ -185,9 +192,23 @@ export function HomePage() {
 function Circle() {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
+  const zohoEmailRef = useRef<HTMLInputElement>(null);
+  const zohoFormRef = useRef<HTMLFormElement>(null);
+
+  function join(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const next = email.trim();
+    if (!next.includes("@") || !next.includes(".")) return;
+    if (zohoEmailRef.current) zohoEmailRef.current.value = next;
+    zohoFormRef.current?.requestSubmit();
+    setDone(true);
+  }
 
   return (
-    <section className="bg-[#f6e8e4] px-6 py-14 text-center sm:py-16 lg:py-20">
+    <section
+      id={SUBSCRIBE_SECTION_ID}
+      className="scroll-mt-14 bg-[#f6e8e4] px-6 py-14 text-center sm:py-16 lg:py-20"
+    >
       <h2 className="text-[2.75rem] leading-[1.05] text-ink sm:text-6xl sm:whitespace-nowrap">
         Join the
         <br className="sm:hidden" /> RENSÉ Circle
@@ -196,19 +217,31 @@ function Circle() {
       <p className="mx-auto mt-5 max-w-md font-serif text-lg text-mute italic sm:text-xl">
         Early access and private releases, straight to your inbox.
       </p>
+      <iframe
+        name="rense-zoho-circle"
+        title=""
+        className="pointer-events-none absolute h-0 w-0 border-0 opacity-0"
+        tabIndex={-1}
+      />
+      <form
+        ref={zohoFormRef}
+        action={ZOHO_CIRCLE_OPTIN_ACTION}
+        method="POST"
+        target="rense-zoho-circle"
+        className="hidden"
+        aria-hidden="true"
+      >
+        <input ref={zohoEmailRef} type="hidden" name="CONTACT_EMAIL" defaultValue="" />
+        {Object.entries(ZOHO_CIRCLE_OPTIN_HIDDEN).map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
+      </form>
       {done ? (
-        <p className="mt-10 text-sm text-mute">You're on the list.</p>
+        <p className="mt-10 text-sm text-mute">You&apos;re on the list.</p>
       ) : (
         <form
           className="mx-auto mt-8 flex w-full max-w-md items-center rounded-full bg-white p-1.5 pl-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const next = email.trim();
-            if (!next.includes("@")) return;
-            const saved = JSON.parse(localStorage.getItem("rense-circle") || "[]") as string[];
-            localStorage.setItem("rense-circle", JSON.stringify([...saved, next]));
-            setDone(true);
-          }}
+          onSubmit={join}
         >
           <input
             type="email"
