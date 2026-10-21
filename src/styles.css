@@ -17,8 +17,8 @@
 
 @layer base {
   html {
-    background: var(--color-ink);
-    color: var(--color-ivory);
+    background: #ffffff;
+    color: var(--color-ink);
     font-family: var(--font-serif);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -29,6 +29,7 @@
   body {
     min-height: 100%;
     overflow-x: hidden;
+    background: #ffffff;
   }
 
   input,

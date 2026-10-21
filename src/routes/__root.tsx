@@ -16,7 +16,7 @@ export const Route = createRootRoute({
         content:
           "RENSÉ. A private transformation. The Guided Healing Journal, kept for the hour that belongs only to you.",
       },
-      { name: "theme-color", content: "#0c0a09" },
+      { name: "theme-color", content: "#ffffff" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
