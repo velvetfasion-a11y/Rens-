@@ -107,40 +107,18 @@ function Circle() {
   function join(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const next = email.trim();
-    if (!next.includes("@") || !next.includes(".")) return;
+    if (!next.includes("@")) return;
     if (zohoEmailRef.current) zohoEmailRef.current.value = next;
     zohoFormRef.current?.requestSubmit();
     setDone(true);
   }
 
   return (
-    <section
-      id={SUBSCRIBE_SECTION_ID}
-      className="scroll-mt-16 bg-[#f6e8e4] px-6 py-16 text-center sm:py-20"
-    >
+    <section id={SUBSCRIBE_SECTION_ID} className="bg-[#f6e8e4] px-6 py-16 text-center sm:py-20">
       <h2 className="font-display text-3xl text-ink sm:text-4xl">Join the circle</h2>
-      <p className="mt-3 font-serif text-base text-mute italic">Private releases, by email.</p>
-      <iframe
-        name="rense-zoho-circle"
-        title=""
-        className="pointer-events-none absolute h-0 w-0 border-0 opacity-0"
-        tabIndex={-1}
-      />
-      <form
-        ref={zohoFormRef}
-        action={ZOHO_CIRCLE_OPTIN_ACTION}
-        method="POST"
-        target="rense-zoho-circle"
-        className="hidden"
-        aria-hidden="true"
-      >
-        <input ref={zohoEmailRef} type="hidden" name="CONTACT_EMAIL" defaultValue="" />
-        {Object.entries(ZOHO_CIRCLE_OPTIN_HIDDEN).map(([name, value]) => (
-          <input key={name} type="hidden" name={name} value={value} />
-        ))}
-      </form>
+      <p className="mt-3 font-serif text-base text-[#6b6258] italic">Private releases, by email.</p>
       {done ? (
-        <p className="mt-8 text-sm text-mute">You&apos;re on the list.</p>
+        <p className="mt-8 text-sm text-[#6b6258]">You&apos;re on the list.</p>
       ) : (
         <form
           className="mx-auto mt-8 flex w-full max-w-xs items-center border-b border-ink/25"
@@ -163,6 +141,25 @@ function Circle() {
           </button>
         </form>
       )}
+      <iframe
+        name="rense-zoho-circle"
+        title=""
+        className="hidden"
+        tabIndex={-1}
+      />
+      <form
+        ref={zohoFormRef}
+        action={ZOHO_CIRCLE_OPTIN_ACTION}
+        method="POST"
+        target="rense-zoho-circle"
+        className="hidden"
+        aria-hidden="true"
+      >
+        <input ref={zohoEmailRef} type="hidden" name="CONTACT_EMAIL" defaultValue="" />
+        {Object.entries(ZOHO_CIRCLE_OPTIN_HIDDEN).map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
+      </form>
     </section>
   );
 }
