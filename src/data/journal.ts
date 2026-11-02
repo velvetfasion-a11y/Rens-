@@ -3,6 +3,9 @@ export const JOURNAL = {
   price: 249,
 } as const;
 
+/** Paid orders at or above this total quantity show “Preorder” on the add button. */
+export const JOURNAL_SALE_CAP = 19;
+
 export type Review = {
   id: string;
   name: string;
