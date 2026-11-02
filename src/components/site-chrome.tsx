@@ -108,7 +108,7 @@ const STEPS = [
 
 export function Steps() {
   return (
-    <section className="relative mx-auto mt-10 w-full max-w-3xl px-5" aria-label="How it works">
+    <section className="relative mx-auto mt-10 w-full max-w-3xl" aria-label="How it works">
       <h2 className="mb-6 text-center font-display text-3xl text-ink">How it works</h2>
       <div className="pointer-events-none absolute inset-x-8 top-2 h-24 rounded-full bg-[#f3ddd8]/50 blur-3xl" aria-hidden="true" />
       <ol className="relative grid grid-cols-3 gap-2 sm:gap-4">

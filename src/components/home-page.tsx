@@ -116,9 +116,9 @@ function Circle() {
   return (
     <section id={SUBSCRIBE_SECTION_ID} className="bg-[#f6e8e4] px-6 py-16 text-center sm:py-20">
       <h2 className="font-display text-3xl text-ink sm:text-4xl">Join the circle</h2>
-      <p className="mt-3 font-serif text-base text-[#6b6258] italic">Private releases, by email.</p>
+      <p className="mt-3 font-serif text-base text-mute italic">Private releases, by email.</p>
       {done ? (
-        <p className="mt-8 text-sm text-[#6b6258]">You&apos;re on the list.</p>
+        <p className="mt-8 text-sm text-mute">You&apos;re on the list.</p>
       ) : (
         <form
           className="mx-auto mt-8 flex w-full max-w-xs items-center border-b border-ink/25"
