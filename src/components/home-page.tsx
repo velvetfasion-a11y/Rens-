@@ -107,23 +107,44 @@ function Circle() {
   function join(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const next = email.trim();
-    if (!next.includes("@") || !next.includes(".")) return;
+    if (!next.includes("@")) return;
     if (zohoEmailRef.current) zohoEmailRef.current.value = next;
     zohoFormRef.current?.requestSubmit();
     setDone(true);
   }
 
   return (
-    <section
-      id={SUBSCRIBE_SECTION_ID}
-      className="scroll-mt-16 bg-[#f6e8e4] px-6 py-14 text-center sm:py-16 lg:py-20"
-    >
+    <section id={SUBSCRIBE_SECTION_ID} className="bg-[#f6e8e4] px-6 py-16 text-center sm:py-20">
       <h2 className="font-display text-3xl text-ink sm:text-4xl">Join the circle</h2>
       <p className="mt-3 font-serif text-base text-mute italic">Private releases, by email.</p>
+      {done ? (
+        <p className="mt-8 text-sm text-mute">You&apos;re on the list.</p>
+      ) : (
+        <form
+          className="mx-auto mt-8 flex w-full max-w-xs items-center border-b border-ink/25"
+          onSubmit={join}
+        >
+          <input
+            type="email"
+            required
+            inputMode="email"
+            autoComplete="email"
+            enterKeyHint="done"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="Email"
+            aria-label="Email"
+            className="h-11 min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-[#a39b93]"
+          />
+          <button type="submit" className="press h-11 shrink-0 text-[11px] tracking-[0.22em] text-ink uppercase">
+            Join
+          </button>
+        </form>
+      )}
       <iframe
         name="rense-zoho-circle"
         title=""
-        className="pointer-events-none absolute h-0 w-0 border-0 opacity-0"
+        className="hidden"
         tabIndex={-1}
       />
       <form
@@ -139,34 +160,6 @@ function Circle() {
           <input key={name} type="hidden" name={name} value={value} />
         ))}
       </form>
-      {done ? (
-        <p className="mt-8 text-sm text-mute">You&apos;re on the list.</p>
-      ) : (
-        <form
-          className="mx-auto mt-8 flex w-full max-w-xs items-center rounded-full bg-white p-1.5 pl-5 sm:max-w-md"
-          onSubmit={join}
-        >
-          <input
-            type="email"
-            required
-            inputMode="email"
-            autoComplete="email"
-            enterKeyHint="done"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Your email"
-            aria-label="Your email"
-            className="h-11 min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-[#b0a8a0]"
-          />
-          <button
-            type="submit"
-            className="press h-11 shrink-0 rounded-full bg-gold px-7 text-[11px] tracking-[0.22em] text-white uppercase"
-          >
-            Join
-          </button>
-        </form>
-      )}
-      <p className="mt-4 text-xs text-[#a39b93]">No spam. Unsubscribe anytime.</p>
     </section>
   );
 }
